@@ -23,23 +23,26 @@ public class AppIbankTest {
             this.password = password;
             this.status = status;
         }
-        public DataClass(){}
+
+        public DataClass() {
+        }
     }
 
     private Faker faker;
 
     @BeforeEach
-    void setUp(){
-            faker=new Faker(new Locale("en"));
-        }
-        // спецификация нужна для того, чтобы переиспользовать настройки в разных запросах
+    void setUp() {
+        faker = new Faker(new Locale("en"));
+    }
+
+    // спецификация нужна для того, чтобы переиспользовать настройки в разных запросах
     private static RequestSpecification requestSpec = new RequestSpecBuilder()
-                .setBaseUri("http://localhost")
-                .setPort(9999)
-                .setAccept(ContentType.JSON)
-                .setContentType(ContentType.JSON)
-                .log(LogDetail.ALL)
-                .build();
+            .setBaseUri("http://localhost")
+            .setPort(9999)
+            .setAccept(ContentType.JSON)
+            .setContentType(ContentType.JSON)
+            .log(LogDetail.ALL)
+            .build();
 
     @Test
     public void shouldResponseValidData() {
@@ -251,8 +254,6 @@ public class AppIbankTest {
     }*/
 
 
-
-
     //Этот тест при неправильном формате дает ответ сервера 500
    /* @Test
     public void shouldResponseTwoParamsIsEmpty() {
@@ -282,7 +283,6 @@ public class AppIbankTest {
     }*/
 
 
-
     //Этот тест при неправильном формате дает ответ сервера 500
     /*@Test
     public void shouldResponseToSimpleData() {
@@ -310,8 +310,6 @@ public class AppIbankTest {
                 .then() // "тогда ожидаем"
                 .statusCode(200); // код 200 OK
     }*/
-
-
 
 
 }
