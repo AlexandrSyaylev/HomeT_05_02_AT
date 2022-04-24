@@ -1,315 +1,88 @@
+import com.codeborne.selenide.Condition;
 import com.github.javafaker.Faker;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.filter.log.LogDetail;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.Locale;
 
+import static com.codeborne.selenide.Condition.visible;
+import static com.codeborne.selenide.Selectors.withText;
 import static com.codeborne.selenide.Selenide.*;
 import static io.restassured.RestAssured.given;
 
 public class AppIbankTest {
 
-    public class DataClass {
-        private String login;
-        private String password;
-        private String status;
-
-        public DataClass(String login, String password, String status) {
-            this.login = login;
-            this.password = password;
-            this.status = status;
+    public class LoginPage {
+        public void login(DataGen.RegistrationDto info) {
+            //open("http://localhost:9999/api/system/users");
+            $("input[name='login']").setValue(info.getLogin());
+            $("input[name='password']").setValue(info.getPassword());
+            $("button[type='button']").click();
         }
-
-        public DataClass() {
+        public void enterWrongPass(DataGen.RegistrationDto info){
+            $("input[name='login']").setValue(info.getLogin());
+            $("input[name='password']").setValue(DataGen.getRandomPassword());
+            $("button[type='button']").click();
+        }
+        public void enterWrongLogin(DataGen.RegistrationDto info){
+            $("input[name='login']").setValue(DataGen.getRandomLogin());
+            $("input[name='password']").setValue(info.getPassword());
+            $("button[type='button']").click();
         }
     }
-
-    private Faker faker;
 
     @BeforeEach
-    void setUp() {
-        faker = new Faker(new Locale("en"));
-    }
-
-    // спецификация нужна для того, чтобы переиспользовать настройки в разных запросах
-    private static RequestSpecification requestSpec = new RequestSpecBuilder()
-            .setBaseUri("http://localhost")
-            .setPort(9999)
-            .setAccept(ContentType.JSON)
-            .setContentType(ContentType.JSON)
-            .log(LogDetail.ALL)
-            .build();
-
-    @Test
-    public void shouldResponseValidData() {
-        DataClass dataUser = new DataClass(faker.name().firstName(), "passwort", "active");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
+    void setup() {
+        open("http://localhost:9999");
     }
 
     @Test
-    public void shouldResponseStatusIsBlocked() {
-        DataClass dataUser = new DataClass(faker.name().firstName(), faker.name().lastName(), "blocked");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
+    @DisplayName("Should successfully login with active registered user")
+    void shouldSuccessfulLoginIfRegisteredActiveUser() {
+        var registeredUser = DataGen.Registration.getRegisteredUser("active");
+        new LoginPage().login(registeredUser);
+        $(withText("Личный кабинет")).shouldBe(visible, Duration.ofSeconds(15));
     }
 
     @Test
-    public void shouldResponseNoUserName() {
-        DataClass dataUser = new DataClass("", faker.name().lastName(), "active");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
+    @DisplayName("Should get error message if login with not registered user")
+    void shouldGetErrorIfNotRegisteredUser() {
+        var notRegisteredUser = DataGen.Registration.getUser("active");
+        new LoginPage().login(notRegisteredUser);
+        $(withText("Ошибка!")).shouldBe(visible, Duration.ofSeconds(5));
     }
 
     @Test
-    public void shouldResponseLoginIsSpaceStatusIsActive() {
-        DataClass dataUser = new DataClass(" ", faker.name().lastName(), "active");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
+    @DisplayName("Should get error message if login with blocked registered user")
+    void shouldGetErrorIfBlockedUser() {
+        var blockedUser = DataGen.Registration.getRegisteredUser("blocked");
+        new LoginPage().login(blockedUser);
+        $(withText("Ошибка!")).shouldBe(visible, Duration.ofSeconds(5));
     }
 
     @Test
-    public void shouldResponseLoginIsSpaceStatusISBlocked() {
-        DataClass dataUser = new DataClass(" ", faker.name().lastName(), "blocked");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
+    @DisplayName("Should get error message if login with wrong login")
+    void shouldGetErrorIfWrongLogin() {
+        var registeredUser = DataGen.Registration.getRegisteredUser("active");
+        new LoginPage().enterWrongPass(registeredUser);
+        $(withText("Ошибка!")).shouldBe(visible, Duration.ofSeconds(5));
+        //var wrongLogin = DataGen.getRandomLogin();
     }
 
     @Test
-    public void shouldResponseLoginIsNumerStatusISBlocked() {
-        DataClass dataUser = new DataClass("123", faker.name().lastName(), "blocked");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
+    @DisplayName("Should get error message if login with wrong password")
+    void shouldGetErrorIfWrongPassword() {
+        var registeredUser = DataGen.Registration.getRegisteredUser("active");
+        new LoginPage().enterWrongPass(registeredUser);
+        $(withText("Ошибка!")).shouldBe(visible, Duration.ofSeconds(5));
+        //var wrongPassword = DataGen.getRandomPassword();
     }
-
-    @Test
-    public void shouldResponseLoginIsNumberStatusIsActive() {
-        DataClass dataUser = new DataClass("123", faker.name().lastName(), "active");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }
-
-    @Test
-    public void shouldResponseLoginIsRussianStatusIsActive() {
-        DataClass dataUser = new DataClass("ЙА", faker.name().lastName(), "active");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }
-
-    @Test
-    public void shouldResponseLoginIsRussianStatusIsBlocked() {
-        DataClass dataUser = new DataClass("ЙА", faker.name().lastName(), "blocked");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }
-
-    @Test
-    public void shouldResponseNoPass() {
-        DataClass dataUser = new DataClass(faker.name().firstName(), "", "active");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }
-
-    @Test
-    public void shouldResponseNoPassBlocked() {
-        DataClass dataUser = new DataClass(faker.name().firstName(), "", "blocked");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }
-
-    @Test
-    public void shouldResponsePassIsSpaceActive() {
-        DataClass dataUser = new DataClass(faker.name().firstName(), " ", "blocked");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }
-
-    @Test
-    public void shouldResponsePassIsSymbolActive() {
-        DataClass dataUser = new DataClass(faker.name().firstName(), "~!@$%^&*?><|:}", "blocked");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }
-
-    @Test
-    public void shouldResponseTwoParamsIsEmptyStatusActive() {
-        DataClass dataUser = new DataClass("", "", "active");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }
-
-    @Test
-    public void shouldResponseTwoParamsIsEmptyStatusBlock() {
-        DataClass dataUser = new DataClass("", "", "blocked");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }
-
-    //Этот тест при неправильном формате дает ответ сервера 500
-    /*@Test
-    public void shouldResponseValidDataInvalidstatus() {
-        DataClass dataUser = new DataClass(faker.name().firstName(), "passwort", "Hello");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }*/
-
-
-    //Этот тест при неправильном формате дает ответ сервера 500
-   /* @Test
-    public void shouldResponseTwoParamsIsEmpty() {
-        DataClass dataUser = new DataClass(faker.name().firstName(), "", "");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }*/
-
-    //Этот тест при неправильном формате дает ответ сервера 500
-    /*@Test
-    public void shouldResponseNoData() {
-        DataClass dataUser = new DataClass("", "", "");
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }*/
-
-
-    //Этот тест при неправильном формате дает ответ сервера 500
-    /*@Test
-    public void shouldResponseToSimpleData() {
-        DataClass dataUser = new DataClass();
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body("dataUser, passwort, active") // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }*/
-
-    //Этот тест падает ответ сервера 500
-    /*@Test
-    public void shouldResponseToNullData() {
-        DataClass dataUser = new DataClass();
-        // сам запрос
-        given() // "дано"
-                .spec(requestSpec) // указываем, какую спецификацию используем
-                .body(dataUser) // передаём в теле объект, который будет преобразован в JSON
-                .when() // "когда"
-                .post("/api/system/users") // на какой путь, относительно BaseUri отправляем запрос
-                .then() // "тогда ожидаем"
-                .statusCode(200); // код 200 OK
-    }*/
 
 
 }
