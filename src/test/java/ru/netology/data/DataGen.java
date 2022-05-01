@@ -1,3 +1,5 @@
+package ru.netology.data;
+
 import com.github.javafaker.Faker;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.filter.log.LogDetail;
@@ -5,11 +7,7 @@ import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import lombok.Data;
 import lombok.Value;
-import lombok.experimental.UtilityClass;
 
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 import static io.restassured.RestAssured.given;
@@ -17,7 +15,6 @@ import static io.restassured.RestAssured.given;
 @Data
 public class DataGen {
 
-    // спецификация нужна для того, чтобы переиспользовать настройки в разных запросах
     private static RequestSpecification requestSpec = new RequestSpecBuilder()
             .setBaseUri("http://localhost")
             .setPort(9999)
@@ -33,9 +30,6 @@ public class DataGen {
     }
 
     private static void sendRequest(RegistrationDto user) {
-        // TODO: отправить запрос на указанный в требованиях path, передав в body запроса объект user
-        //  и не забудьте передать подготовленную спецификацию requestSpec.
-        //  Пример реализации метода показан в условии к задаче.
         given() // "дано"
                 .spec(requestSpec) // указываем, какую спецификацию используем
                 .body(user) // передаём в теле объект, который будет преобразован в JSON
@@ -54,16 +48,12 @@ public class DataGen {
     }
 
     public static class Registration {
-        /*private Registration() {
-        }*/
 
         public static RegistrationDto getUser(String status) {
             return new RegistrationDto(getRandomLogin(), getRandomPassword(), status);
         }
 
         public static RegistrationDto getRegisteredUser(String status) {
-            // TODO: объявить переменную registeredUser и присвоить ей значение возвращённое getUser(status).
-            // Послать запрос на регистрацию пользователя с помощью вызова sendRequest(registeredUser)
             RegistrationDto registeredUser = getUser(status);
             sendRequest(registeredUser);
             return registeredUser;
