@@ -16,17 +16,9 @@ import static io.restassured.RestAssured.given;
 public class AppIbankTest {
 
     public class LoginPage {
-        public void login(DataGen.RegistrationDto info, boolean wrongLogin, boolean wrongPassword) {
-            if (wrongLogin) {
-                $("input[name='login']").setValue(DataGen.getRandomLogin());
-            } else {
-                $("input[name='login']").setValue(info.getLogin());
-            }
-            if (wrongPassword) {
-                $("input[name='password']").setValue(DataGen.getRandomPassword());
-            } else {
-                $("input[name='password']").setValue(info.getPassword());
-            }
+        public void login(String login, String password) {
+            $("input[name='login']").setValue(login);
+            $("input[name='password']").setValue(password);
             $("button[type='button']").click();
         }
     }
@@ -40,7 +32,7 @@ public class AppIbankTest {
     @DisplayName("Should successfully login with active registered user")
     void shouldSuccessfulLoginIfRegisteredActiveUser() {
         var registeredUser = DataGen.Registration.getRegisteredUser("active");
-        new LoginPage().login(registeredUser, false, false);
+        new LoginPage().login(registeredUser.getLogin(), registeredUser.getPassword());
         $(withText("Личный кабинет")).shouldBe(visible, Duration.ofSeconds(15));
     }
 
@@ -48,7 +40,7 @@ public class AppIbankTest {
     @DisplayName("Should get error message if login with not registered user")
     void shouldGetErrorIfNotRegisteredUser() {
         var notRegisteredUser = DataGen.Registration.getUser("active");
-        new LoginPage().login(notRegisteredUser, false, false);
+        new LoginPage().login(notRegisteredUser.getLogin(), notRegisteredUser.getPassword());
         $(withText("Неверно указан логин или пароль")).shouldBe(visible, Duration.ofSeconds(15));
     }
 
@@ -56,7 +48,7 @@ public class AppIbankTest {
     @DisplayName("Should get error message if login with blocked registered user")
     void shouldGetErrorIfBlockedUser() {
         var blockedUser = DataGen.Registration.getRegisteredUser("blocked");
-        new LoginPage().login(blockedUser, false, false);
+        new LoginPage().login(blockedUser.getLogin(), blockedUser.getPassword());
         $(withText("Пользователь заблокирован")).shouldBe(visible, Duration.ofSeconds(15));
     }
 
@@ -64,7 +56,7 @@ public class AppIbankTest {
     @DisplayName("Should get error message if login with wrong login")
     void shouldGetErrorIfWrongLogin() {
         var registeredUser = DataGen.Registration.getRegisteredUser("active");
-        new LoginPage().login(registeredUser, true, false);
+        new LoginPage().login(DataGen.getRandomLogin(), registeredUser.getPassword());
         $(withText("Неверно указан логин или пароль")).shouldBe(visible, Duration.ofSeconds(15));
     }
 
@@ -72,7 +64,7 @@ public class AppIbankTest {
     @DisplayName("Should get error message if login with wrong password")
     void shouldGetErrorIfWrongPassword() {
         var registeredUser = DataGen.Registration.getRegisteredUser("active");
-        new LoginPage().login(registeredUser, true, true);
+        new LoginPage().login(registeredUser.getLogin(), DataGen.getRandomPassword());
         $(withText("Неверно указан логин или пароль")).shouldBe(visible, Duration.ofSeconds(5));
     }
 
